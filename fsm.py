@@ -12,7 +12,7 @@ State = TypeAliasType("State", int)
 Symbol = TypeAliasType("Symbol", int)
 
 def get_state_chars(fsm: interegular.fsm, symbol: Symbol) -> list[str]:
-    return [k for k,v in fsm.alphabet._symbol_mapping.items() if v == symbol]
+    return fsm.alphabet._by_transition[symbol]
 
 @guidance(stateless=True)
 def gen_fsm(lm, fsm: interegular.fsm):
