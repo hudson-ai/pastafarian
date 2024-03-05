@@ -26,7 +26,7 @@ def gen_fsm(lm, fsm: interegular.fsm):
             options = []
             for symbol, state in transition.items():
                 option = select(get_state_chars(fsm, symbol))
-                if map[state]:
+                if state not in fsm.finals:
                     option += funcs.setdefault(state, build_func(state))()
                 options.append(option)
             return lm + select(options)
