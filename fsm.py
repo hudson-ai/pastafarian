@@ -22,26 +22,21 @@ def gen_fsm(lm, fsm: interegular.fsm) -> Mapping[State, Callable[[], GrammarFunc
         def closure(lm):
             options = []
             for symbol, state in transition.items():
-                # option = symbol
                 option = select([k for k,v in fsm.alphabet._symbol_mapping.items() if v == symbol])
                 if map[state]:
-                    option += funcs[state]()
+                    option += funcs.setdefault(state, build_func(state))()
                 options.append(option)
             return lm + select(options)
         closure.__name__ = str(state)
 
         return guidance(stateless=True, dedent=False)(closure)
 
-    for state in map.keys():
-        funcs[state] = build_func(state)
-
-    initial = funcs[fsm.initial]
-    return lm + initial()
+    return lm + build_func(fsm.initial)()
 
 @guidance(stateless=True)
 def gen_regex(lm, pattern):
     fsm = interegular.parse_pattern(pattern).to_fsm()
     return lm + gen_fsm(fsm)
 
-regex = r"[A-Z]{2}"
+regex = r"abcdef(g|h)"
 gen_regex(regex)
