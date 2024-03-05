@@ -11,8 +11,11 @@ from guidance._grammar import GrammarFunction
 State = TypeAliasType("State", int)
 Symbol = TypeAliasType("Symbol", int)
 
+def get_state_chars(fsm: interegular.fsm, symbol: Symbol) -> list[str]:
+    return [k for k,v in fsm.alphabet._symbol_mapping.items() if v == symbol]
+
 @guidance(stateless=True)
-def gen_fsm(lm, fsm: interegular.fsm) -> Mapping[State, Callable[[], GrammarFunction]]:
+def gen_fsm(lm, fsm: interegular.fsm):
     map: Mapping[State, Mapping[Symbol, State]] = fsm.map
     funcs: Mapping[State, Callable[[], GrammarFunction]] = {}
 
@@ -22,7 +25,7 @@ def gen_fsm(lm, fsm: interegular.fsm) -> Mapping[State, Callable[[], GrammarFunc
         def closure(lm):
             options = []
             for symbol, state in transition.items():
-                option = select([k for k,v in fsm.alphabet._symbol_mapping.items() if v == symbol])
+                option = select(get_state_chars(fsm, symbol))
                 if map[state]:
                     option += funcs.setdefault(state, build_func(state))()
                 options.append(option)
