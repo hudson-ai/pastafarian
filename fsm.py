@@ -11,10 +11,10 @@ from guidance._grammar import GrammarFunction
 State = TypeAliasType("State", int)
 Symbol = TypeAliasType("Symbol", int)
 
-def get_byte_ranges(chars: Iterable[str]) -> list[bytes]:
+def get_byte_ranges(chars: Iterable[str]) -> list[str|bytes]:
     # From interegular.fsm.nice_char_group
-    out = []
-    current_range = []
+    out: list[str|bytes] = []
+    current_range: list[str] = []
     for c in sorted(chars):
         if current_range and ord(current_range[-1]) + 1 == ord(c):
             current_range.append(c)
@@ -31,6 +31,7 @@ def get_byte_ranges(chars: Iterable[str]) -> list[bytes]:
     return out
 
 def get_state_bytes(fsm: interegular.fsm.FSM, symbol: Symbol) -> list[bytes]:
+    # TODO: handle r'.*'
     chars = fsm.alphabet._by_transition[symbol]
     return get_byte_ranges(chars)
 
