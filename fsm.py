@@ -69,7 +69,3 @@ def gen_fsm(lm, fsm: FSM):
 def gen_regex(lm, pattern):
     fsm = parse_pattern(pattern).to_fsm()
     return lm + gen_fsm(fsm)
-
-regex = r"[^b]"
-gen_regex(regex)
-
