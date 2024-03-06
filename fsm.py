@@ -42,17 +42,22 @@ def gen_fsm(lm, fsm: interegular.fsm.FSM):
     def build_func(state: State) -> Callable[[], GrammarFunction]:
         transition: Mapping[Symbol, State] = map[state]
 
+        # TODO: handle optional when `state in fsm.finals`
+
         def closure(lm):
             options = []
-            for symbol, state in transition.items():
+            for symbol, next_state in transition.items():
+                next_func = funcs.setdefault(next_state, build_func(next_state))
                 option = select(get_state_bytes(fsm, symbol))
-                if state not in fsm.finals:
-                    option += funcs.setdefault(state, build_func(state))()
+                if len(map[next_state]) > 0:
+                    option += next_func()
                 options.append(option)
             return lm + select(options)
-        closure.__name__ = str(state)
 
-        return guidance(stateless=True, dedent=False)(closure)
+        # Set name for repr
+        closure.__name__ = str(state)
+        closure = guidance(closure, stateless=True, dedent=False)
+        return closure
 
     return lm + build_func(fsm.initial)()
 
