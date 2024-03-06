@@ -1,7 +1,7 @@
 # states as functions. GO
 from typing import Callable
 from typing_extensions import TypeAliasType
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterable
 import interegular
 
 import guidance
@@ -11,18 +11,31 @@ from guidance._grammar import GrammarFunction
 State = TypeAliasType("State", int)
 Symbol = TypeAliasType("Symbol", int)
 
-def get_state_bytes(fsm: interegular.fsm.FSM, symbol: Symbol) -> list[str]:
+def get_byte_ranges(chars: Iterable[str]) -> list[bytes]:
+    # From interegular.fsm.nice_char_group
+    out = []
+    current_range = []
+    for c in sorted(chars):
+        if current_range and ord(current_range[-1]) + 1 == ord(c):
+            current_range.append(c)
+            continue
+        if len(current_range) >= 2:
+            out.append(char_range(current_range[0], current_range[-1]))
+        else:
+            out.extend(current_range)
+        current_range = [c]
+    if len(current_range) >= 2:
+        out.append(char_range(current_range[0], current_range[-1]))
+    else:
+        out.extend(current_range)
+    return out
+
+def get_state_bytes(fsm: interegular.fsm.FSM, symbol: Symbol) -> list[bytes]:
     chars = fsm.alphabet._by_transition[symbol]
-    if len(chars) == 1:
-        return chars
-    chars = sorted(chars)
-    ints = [ord(char) for char in chars]
-    if ints == list(range(ints[0], ints[0]+len(ints))):
-        return [char_range(chars[0], chars[-1])]
-    return chars
+    return get_byte_ranges(chars)
 
 @guidance(stateless=True)
-def gen_fsm(lm, fsm: interegular.fsm):
+def gen_fsm(lm, fsm: interegular.fsm.FSM):
     map: Mapping[State, Mapping[Symbol, State]] = fsm.map
     funcs: Mapping[State, Callable[[], GrammarFunction]] = {}
 
