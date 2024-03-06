@@ -1,6 +1,5 @@
 # states as functions. GO
 from typing import Callable
-from typing_extensions import TypeAliasType
 from collections.abc import Mapping, Iterable
 import interegular
 
@@ -8,8 +7,8 @@ import guidance
 from guidance import select, char_range
 from guidance._grammar import GrammarFunction
 
-State = TypeAliasType("State", int)
-Symbol = TypeAliasType("Symbol", int)
+State = int
+Symbol = int
 
 def get_byte_ranges(chars: Iterable[str]) -> list[str|bytes]:
     # From interegular.fsm.nice_char_group
@@ -31,7 +30,7 @@ def get_byte_ranges(chars: Iterable[str]) -> list[str|bytes]:
     return out
 
 def get_state_bytes(fsm: interegular.fsm.FSM, symbol: Symbol) -> list[bytes]:
-    # TODO: handle r'.*'
+    # TODO: handle r'.*' / 'anything else'
     chars = fsm.alphabet._by_transition[symbol]
     return get_byte_ranges(chars)
 
