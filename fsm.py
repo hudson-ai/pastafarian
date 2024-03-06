@@ -5,14 +5,21 @@ from collections.abc import Mapping, MutableMapping
 import interegular
 
 import guidance
-from guidance import select
+from guidance import select, byte_range
 from guidance._grammar import GrammarFunction
 
 State = TypeAliasType("State", int)
 Symbol = TypeAliasType("Symbol", int)
 
-def get_state_chars(fsm: interegular.fsm, symbol: Symbol) -> list[str]:
-    return fsm.alphabet._by_transition[symbol]
+def get_state_bytes(fsm: interegular.fsm, symbol: Symbol) -> list[str]:
+    chars = fsm.alphabet._by_transition[symbol]
+    if len(chars) == 1:
+        return chars
+    bts = sorted([bytes(char, encoding='utf8') for char in chars])
+    ints = [int.from_bytes(b) for b in bts]
+    if ints == list(range(ints[0], ints[0]+len(ints))):
+        return [byte_range(bts[0], bts[-1])]
+    return bts
 
 @guidance(stateless=True)
 def gen_fsm(lm, fsm: interegular.fsm):
@@ -25,7 +32,7 @@ def gen_fsm(lm, fsm: interegular.fsm):
         def closure(lm):
             options = []
             for symbol, state in transition.items():
-                option = select(get_state_chars(fsm, symbol))
+                option = select(get_state_bytes(fsm, symbol))
                 if state not in fsm.finals:
                     option += funcs.setdefault(state, build_func(state))()
                 options.append(option)
