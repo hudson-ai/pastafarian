@@ -1,25 +1,25 @@
 # states as functions. GO
 from typing import Callable
 from typing_extensions import TypeAliasType
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 import interegular
 
 import guidance
-from guidance import select, byte_range
+from guidance import select, char_range
 from guidance._grammar import GrammarFunction
 
 State = TypeAliasType("State", int)
 Symbol = TypeAliasType("Symbol", int)
 
-def get_state_bytes(fsm: interegular.fsm, symbol: Symbol) -> list[str]:
+def get_state_bytes(fsm: interegular.fsm.FSM, symbol: Symbol) -> list[str]:
     chars = fsm.alphabet._by_transition[symbol]
     if len(chars) == 1:
         return chars
-    bts = sorted([bytes(char, encoding='utf8') for char in chars])
-    ints = [int.from_bytes(b) for b in bts]
+    chars = sorted(chars)
+    ints = [ord(char) for char in chars]
     if ints == list(range(ints[0], ints[0]+len(ints))):
-        return [byte_range(bts[0], bts[-1])]
-    return bts
+        return [char_range(chars[0], chars[-1])]
+    return chars
 
 @guidance(stateless=True)
 def gen_fsm(lm, fsm: interegular.fsm):
@@ -48,5 +48,5 @@ def gen_regex(lm, pattern):
     fsm = interegular.parse_pattern(pattern).to_fsm()
     return lm + gen_fsm(fsm)
 
-regex = r"abcdef(g|h)"
+regex = r"abcdef[A-Z]"
 gen_regex(regex)
