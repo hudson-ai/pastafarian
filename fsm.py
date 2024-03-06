@@ -5,7 +5,7 @@ from interegular import parse_pattern
 from interegular.fsm import FSM, anything_else, _AnythingElseCls
 
 import guidance
-from guidance import select, char_range, any_char_but
+from guidance import select, char_range, any_char_but, optional
 from guidance._grammar import GrammarFunction
 
 State = int
@@ -46,8 +46,6 @@ def gen_fsm(lm, fsm: FSM):
     def build_func(state: State) -> Callable[[], GrammarFunction]:
         transition: Mapping[Symbol, State] = map[state]
 
-        # TODO: handle optional when `state in fsm.finals`
-
         def closure(lm):
             options = []
             for symbol, next_state in transition.items():
@@ -56,6 +54,8 @@ def gen_fsm(lm, fsm: FSM):
                 if len(map[next_state]) > 0:
                     option += next_func()
                 options.append(option)
+            if state in fsm.finals:
+                return lm + optional(select(options))
             return lm + select(options)
 
         # Set name for repr
