@@ -1,5 +1,5 @@
 # states as functions. GO
-from typing import Callable
+from typing import Callable, Union
 from collections.abc import Mapping, Iterable
 from interegular import parse_pattern
 from interegular.fsm import FSM, anything_else, _AnythingElseCls
@@ -11,7 +11,7 @@ from guidance._grammar import GrammarFunction
 State = int
 Symbol = int
 
-def get_byte_ranges(chars: Iterable[str | _AnythingElseCls], alphabet: Iterable[str]) -> list[str|bytes]:
+def get_byte_ranges(chars: Iterable[Union[str, _AnythingElseCls]], alphabet: Iterable[str]):
     # From interegular.fsm.nice_char_group
     out: list[str|bytes] = []
     current_range: list[str] = []
