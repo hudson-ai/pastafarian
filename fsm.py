@@ -1,20 +1,25 @@
 # states as functions. GO
 from typing import Callable
 from collections.abc import Mapping, Iterable
-import interegular
+from interegular import parse_pattern
+from interegular.fsm import FSM, anything_else, _AnythingElseCls
 
 import guidance
-from guidance import select, char_range
+from guidance import select, char_range, any_char_but
 from guidance._grammar import GrammarFunction
 
 State = int
 Symbol = int
 
-def get_byte_ranges(chars: Iterable[str]) -> list[str|bytes]:
+def get_byte_ranges(chars: Iterable[str | _AnythingElseCls], alphabet: Iterable[str]) -> list[str|bytes]:
     # From interegular.fsm.nice_char_group
     out: list[str|bytes] = []
     current_range: list[str] = []
     for c in sorted(chars):
+        if c is anything_else:
+            out.append(any_char_but(alphabet))
+            continue
+        assert not isinstance(c, _AnythingElseCls)
         if current_range and ord(current_range[-1]) + 1 == ord(c):
             current_range.append(c)
             continue
@@ -29,13 +34,12 @@ def get_byte_ranges(chars: Iterable[str]) -> list[str|bytes]:
         out.extend(current_range)
     return out
 
-def get_state_bytes(fsm: interegular.fsm.FSM, symbol: Symbol) -> list[bytes]:
-    # TODO: handle r'.*' / 'anything else'
+def get_choices(fsm: FSM, symbol: Symbol):
     chars = fsm.alphabet._by_transition[symbol]
-    return get_byte_ranges(chars)
+    return get_byte_ranges(chars, [char for char in fsm.alphabet if char is not anything_else])
 
 @guidance(stateless=True)
-def gen_fsm(lm, fsm: interegular.fsm.FSM):
+def gen_fsm(lm, fsm: FSM):
     map: Mapping[State, Mapping[Symbol, State]] = fsm.map
     funcs: Mapping[State, Callable[[], GrammarFunction]] = {}
 
@@ -48,7 +52,7 @@ def gen_fsm(lm, fsm: interegular.fsm.FSM):
             options = []
             for symbol, next_state in transition.items():
                 next_func = funcs.setdefault(next_state, build_func(next_state))
-                option = select(get_state_bytes(fsm, symbol))
+                option = select(get_choices(fsm, symbol))
                 if len(map[next_state]) > 0:
                     option += next_func()
                 options.append(option)
@@ -63,8 +67,9 @@ def gen_fsm(lm, fsm: interegular.fsm.FSM):
 
 @guidance(stateless=True)
 def gen_regex(lm, pattern):
-    fsm = interegular.parse_pattern(pattern).to_fsm()
+    fsm = parse_pattern(pattern).to_fsm()
     return lm + gen_fsm(fsm)
 
-regex = r"abcdef[A-Z]"
+regex = r"[^b]"
 gen_regex(regex)
+
