@@ -1,25 +1,17 @@
-# states as functions. GO
-from typing import Callable, Union
-from collections.abc import Mapping, Iterable
-from interegular import parse_pattern
-from interegular.fsm import FSM, anything_else, _AnythingElseCls
+from typing import Callable, List, Any
+from collections.abc import Mapping, Iterable, Collection
+from dataclasses import dataclass
+import interegular
 
 import guidance
 from guidance import select, char_range, any_char_but, optional
 from guidance._grammar import GrammarFunction
 
-State = int
-Symbol = int
-
-def get_byte_ranges(chars: Iterable[Union[str, _AnythingElseCls]], alphabet: Iterable[str]):
-    # From interegular.fsm.nice_char_group
-    out: list[str|bytes] = []
-    current_range: list[str] = []
+def _get_byte_ranges(chars: Iterable[str]) -> List[Any]:
+    # Code mostly from interegular.fsm.nice_char_group
+    out = []
+    current_range = []
     for c in sorted(chars):
-        if c is anything_else:
-            out.append(any_char_but(alphabet))
-            continue
-        assert not isinstance(c, _AnythingElseCls)
         if current_range and ord(current_range[-1]) + 1 == ord(c):
             current_range.append(c)
             continue
@@ -34,25 +26,53 @@ def get_byte_ranges(chars: Iterable[Union[str, _AnythingElseCls]], alphabet: Ite
         out.extend(current_range)
     return out
 
-def get_choices(fsm: FSM, symbol: Symbol):
-    chars = fsm.alphabet._by_transition[symbol]
-    return get_byte_ranges(chars, [char for char in fsm.alphabet if char is not anything_else])
+# Aliases, purely to make later type annotations readable
+State = int
+TransitionKey = int
+
+@dataclass
+class FSM:
+    map: Mapping[State, Mapping[TransitionKey, State]]
+    initial: State
+    finals: Collection[State]
+    grammars: Mapping[TransitionKey, Any]
+
+    @classmethod
+    def from_interegular_fsm(cls, fsm: interegular.FSM) -> 'FSM':
+        alphabet = {char for char in fsm.alphabet.keys() if char != interegular.fsm.anything_else}
+        grammars = {}
+        for transition_key, chars in fsm.alphabet.by_transition.items():
+            if interegular.fsm.anything_else in chars:
+                assert [interegular.fsm.anything_else] == chars
+                grammars[transition_key] = any_char_but(alphabet)
+            else:
+                grammars[transition_key] = select(_get_byte_ranges(chars))
+        
+        return cls(
+            map = fsm.map,
+            initial = fsm.initial,
+            finals = fsm.finals,
+            grammars = grammars
+        )
+    
+    @classmethod
+    def from_regex(cls, pattern: str) -> 'FSM':
+        return cls.from_interegular_fsm(
+            interegular.parse_pattern(pattern).to_fsm()
+        )
 
 @guidance(stateless=True)
-def gen_fsm(lm, fsm: FSM):
-    map: Mapping[State, Mapping[Symbol, State]] = fsm.map
+def fsm(lm, fsm: FSM):
     funcs: Mapping[State, Callable[[], GrammarFunction]] = {}
 
     def build_func(state: State) -> Callable[[], GrammarFunction]:
-        transition: Mapping[Symbol, State] = map[state]
+        transition: Mapping[TransitionKey, State] = fsm.map[state]
 
         def closure(lm):
             options = []
-            for symbol, next_state in transition.items():
+            for transition_key, next_state in transition.items():
                 next_func = funcs.setdefault(next_state, build_func(next_state))
-                option = select(get_choices(fsm, symbol))
-                if len(map[next_state]) > 0:
-                    option += next_func()
+                option = fsm.grammars[transition_key] + next_func()
                 options.append(option)
             if state in fsm.finals:
                 return lm + optional(select(options))
@@ -66,6 +86,7 @@ def gen_fsm(lm, fsm: FSM):
     return lm + build_func(fsm.initial)()
 
 @guidance(stateless=True)
-def gen_regex(lm, pattern):
-    fsm = parse_pattern(pattern).to_fsm()
-    return lm + gen_fsm(fsm)
+def regex(lm, pattern):
+    return lm + fsm(
+        FSM.from_regex(pattern)
+    )
