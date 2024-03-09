@@ -7,6 +7,7 @@ import guidance
 from guidance import select, char_range, any_char_but, optional
 from guidance._grammar import GrammarFunction
 
+
 def _get_byte_ranges(chars: Iterable[str]) -> List[Any]:
     # Code mostly from interegular.fsm.nice_char_group
     out = []
@@ -26,9 +27,11 @@ def _get_byte_ranges(chars: Iterable[str]) -> List[Any]:
         out.extend(current_range)
     return out
 
+
 # Aliases, purely to make later type annotations readable
 State = int
 TransitionKey = int
+
 
 @dataclass
 class FSM:
@@ -38,8 +41,12 @@ class FSM:
     grammars: Mapping[TransitionKey, Any]
 
     @classmethod
-    def from_interegular_fsm(cls, fsm: interegular.FSM) -> 'FSM':
-        alphabet = {char for char in fsm.alphabet.keys() if char != interegular.fsm.anything_else}
+    def from_interegular_fsm(cls, fsm: interegular.FSM) -> "FSM":
+        alphabet = {
+            char
+            for char in fsm.alphabet.keys()
+            if char != interegular.fsm.anything_else
+        }
         grammars = {}
         for transition_key, chars in fsm.alphabet.by_transition.items():
             if interegular.fsm.anything_else in chars:
@@ -47,19 +54,15 @@ class FSM:
                 grammars[transition_key] = any_char_but(alphabet)
             else:
                 grammars[transition_key] = select(_get_byte_ranges(chars))
-        
+
         return cls(
-            map = fsm.map,
-            initial = fsm.initial,
-            finals = fsm.finals,
-            grammars = grammars
+            map=fsm.map, initial=fsm.initial, finals=fsm.finals, grammars=grammars
         )
-    
+
     @classmethod
-    def from_regex(cls, pattern: str) -> 'FSM':
-        return cls.from_interegular_fsm(
-            interegular.parse_pattern(pattern).to_fsm()
-        )
+    def from_regex(cls, pattern: str) -> "FSM":
+        return cls.from_interegular_fsm(interegular.parse_pattern(pattern).to_fsm())
+
 
 @guidance(stateless=True)
 def fsm(lm, fsm: FSM):
@@ -85,8 +88,7 @@ def fsm(lm, fsm: FSM):
 
     return lm + build_func(fsm.initial)()
 
+
 @guidance(stateless=True)
 def regex(lm, pattern):
-    return lm + fsm(
-        FSM.from_regex(pattern)
-    )
+    return lm + fsm(FSM.from_regex(pattern))
