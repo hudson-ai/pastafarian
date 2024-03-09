@@ -42,6 +42,8 @@ class FSM:
 
     @classmethod
     def from_interegular_fsm(cls, fsm: interegular.FSM) -> "FSM":
+        # Remove redundant states first
+        fsm = fsm.reduce()
         alphabet = {
             char
             for char in fsm.alphabet.keys()
