@@ -74,8 +74,10 @@ def fsm(lm, fsm: FSM):
         def closure(lm):
             options = []
             for transition_key, next_state in transition.items():
-                next_func = funcs.setdefault(next_state, build_func(next_state))
-                option = fsm.grammars[transition_key] + next_func()
+                option = fsm.grammars[transition_key]
+                if fsm.map[next_state]:
+                    next_func = funcs.setdefault(next_state, build_func(next_state))
+                    option += next_func()
                 options.append(option)
             if state in fsm.finals:
                 return lm + optional(select(options))
