@@ -1,4 +1,5 @@
 # Finite State Machines for [`guidance`](https://github.com/guidance-ai/guidance)
+[![Python package](https://github.com/hudson-ai/pastafarian/actions/workflows/tests.yml/badge.svg)](https://github.com/hudson-ai/pastafarian/actions/workflows/tests.yml)
 
 Here's a little re-implementation of `guidance` `regex` grammars using finite state machines (implemented on top of `interegular`). This adds a couple of features that `guidance` does not yet support, including using curly braces to indicate number of occurences, (some) lookaheads, and potentially fixing some issues with negations.
 
