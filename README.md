@@ -3,6 +3,8 @@
 
 Here's a little re-implementation of `guidance` `regex` grammars using finite state machines (implemented on top of `interegular`). This adds a couple of features that `guidance` does not yet support, including using curly braces to indicate number of occurences, (some) lookaheads, and potentially fixing some issues with negations.
 
+**See tests for example usage**
+
 Instead of 
 ```python
 from guidance import regex
