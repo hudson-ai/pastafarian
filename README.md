@@ -1,1 +1,1 @@
-FSM
+# Finite State Machines for [`guidance`](https://github.com/guidance-ai/guidance)
