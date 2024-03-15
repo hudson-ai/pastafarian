@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Finite State Machines for guidance"
 dependencies = [
-    "guidance",
+    "guidance @ git+https://github.com/guidance-ai/guidance#ref=55d8e6f",
     "interegular",
 ]
 
