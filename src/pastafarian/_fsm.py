@@ -1,44 +1,24 @@
-from typing import Callable, List, Any
-from collections.abc import Mapping, Iterable, Collection
+from typing import Callable, Any
+from collections.abc import Mapping, Collection
 from dataclasses import dataclass
 import interegular
 
 import guidance
-from guidance import select, char_range, any_char_but, optional
+from guidance import select, any_char_but, optional
 from guidance._grammar import GrammarFunction
 
-
-def _get_byte_ranges(chars: Iterable[str]) -> List[Any]:
-    # Code mostly from interegular.fsm.nice_char_group
-    out = []
-    current_range = []
-    for c in sorted(chars):
-        if current_range and ord(current_range[-1]) + 1 == ord(c):
-            current_range.append(c)
-            continue
-        if len(current_range) >= 2:
-            out.append(char_range(current_range[0], current_range[-1]))
-        else:
-            out.extend(current_range)
-        current_range = [c]
-    if len(current_range) >= 2:
-        out.append(char_range(current_range[0], current_range[-1]))
-    else:
-        out.extend(current_range)
-    return out
-
+from .util import nice_char_group
 
 # Aliases, purely to make later type annotations readable
 State = int
 TransitionKey = int
-
 
 @dataclass
 class FSM:
     map: Mapping[State, Mapping[TransitionKey, State]]
     initial: State
     finals: Collection[State]
-    grammars: Mapping[TransitionKey, Any]
+    grammars: Mapping[TransitionKey, GrammarFunction]
 
     @classmethod
     def from_interegular_fsm(cls, fsm: interegular.FSM) -> "FSM":
@@ -55,7 +35,7 @@ class FSM:
                 assert [interegular.fsm.anything_else] == chars
                 grammars[transition_key] = any_char_but(alphabet)
             else:
-                grammars[transition_key] = select(_get_byte_ranges(chars))
+                grammars[transition_key] = select(nice_char_group(chars))
 
         return cls(
             map=fsm.map, initial=fsm.initial, finals=fsm.finals, grammars=grammars
@@ -91,8 +71,3 @@ def fsm(lm, fsm: FSM):
         return closure
 
     return lm + build_func(fsm.initial)()
-
-
-@guidance(stateless=True)
-def regex(lm, pattern):
-    return lm + fsm(FSM.from_regex(pattern))
