@@ -1,4 +1,5 @@
-from .fsm import FSM, fsm
+import guidance
+from ._fsm import FSM, fsm
 
 @guidance(stateless=True)
 def regex(lm, pattern: str):

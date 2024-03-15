@@ -7,7 +7,7 @@ import guidance
 from guidance import select, any_char_but, optional
 from guidance._grammar import GrammarFunction
 
-from .util import nice_char_group
+from ._util import nice_char_group
 
 # Aliases, purely to make later type annotations readable
 State = int
