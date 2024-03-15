@@ -1,0 +1,19 @@
+[project]
+name = "pastafarian"
+version = "0.0.1"
+authors = [
+    { name="Hudson Cooper", email="hncooper96@gmail.com" },
+]
+description = "Finite State Machines for guidance"
+dependencies = [
+    "guidance",
+    "interegular",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+]
+
+[project.urls]
+source = "https://github.com/hudson-ai/pastafarian"
